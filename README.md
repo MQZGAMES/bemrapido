@@ -1,10 +1,14 @@
 # BemRápido
 
-Um brinquedo de carrinho mobile first para crianças de 2 anos, com cidade isométrica vista de cima. Arraste o carrinho em qualquer direção. A câmera acompanha o passeio e o carrinho para ao soltar. É possível tocar longe para chamar o carro e continuar arrastando. Área de toque generosa, casas que ficam transparentes perto do carro, som de motor proporcional ao movimento, buzina e controle de som.
+Brincadeira mobile first de miniaturas esportivas vistas diretamente de cima. Cinco carros grandes com pintura metálica, faixas, chamas e aerofólios sobre um pátio livre de asfalto.
 
-Sem pontuação, derrota, anúncios ou coleta de dados. Canvas e Web Audio, sem dependências externas. As setas do teclado também movem o carro.
+- O laranja começa parado e só anda quando manipulado ou empurrado.
+- Quatro carros andam sozinhos. Ao pegar qualquer um, a criança assume o controle.
+- Arrastar e soltar rapidamente lança o carro. A velocidade do gesto define o impulso, com desaceleração gradual.
+- Os carros param ao atingir as bordas. Os autônomos voltam a passear após terminar o impulso e uma breve pausa.
+- Soltar depois de segurar parado não lança o carro. Cancelar o toque também não lança.
+- Colisões suaves entre os brinquedos, motor sintetizado, buzina e opção de silenciar.
+
+Sem anúncios, placar, derrota ou coleta de dados. Canvas e Web Audio, sem dependências externas. Abra index.html ou use qualquer servidor estático.
 
 Jogar: https://mqzgames.github.io/bemrapido/
-
-## Prompt refinado
-Crie BemRápido, um jogo de carrinho para crianças de 2 anos, mobile first. Use uma cidade isométrica vista de cima, como um tapete de brincar com ruas diagonais, cruzamentos, casas e árvores em cores suaves. O bebê arrasta o carrinho livremente com o dedo em qualquer direção. A câmera acompanha suavemente o passeio, o carrinho vira na direção do movimento e para quando o dedo solta. Use uma área de toque generosa, sem exigir precisão, sem competição ou derrota. Inclua motor suave que acompanha o movimento, buzina e opção de silenciar. Publique os arquivos completos com um link para jogar no celular.
