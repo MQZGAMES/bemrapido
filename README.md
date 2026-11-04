@@ -13,3 +13,6 @@ Brincadeira mobile first com três miniaturas esportivas vistas de cima e asfalt
 Canvas e Web Audio sem dependências, anúncios ou coleta de dados. Áudio começa após interação. Abra index.html ou use qualquer servidor estático.
 
 https://mqzgames.github.io/bemrapido/
+
+## Pista livre
+Circuito retangular com cantos arredondados, duas faixas e sentido horário. Azul e verde seguem trajetórias paralelas com velocidades diferentes. O desenho não possui paredes nem restrições físicas: todos podem cruzar as faixas e o centro. Carrinhos reduzidos exatamente em 20%. Batidas transferem impulso, preservam deslizamento lateral e incluem saída de situações em que os brinquedos ficam prensados na borda externa.
