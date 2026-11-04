@@ -1,11 +1,10 @@
 # BemRápido
 
-Passeio de carrinho mobile first para crianças de 2 anos. Segure a tela para acelerar e arraste para os lados para guiar. Solte para parar suavemente. Botão de buzina e controle de som. Sem pontuação, derrotas, anúncios, coleta de dados ou dependências externas.
+Um brinquedo de carrinho mobile first para crianças de 2 anos, com cidade isométrica vista de cima. Arraste o carrinho em qualquer direção. A câmera acompanha o passeio e o carrinho para ao soltar. É possível tocar longe para chamar o carro e continuar arrastando. Área de toque generosa, casas que ficam transparentes perto do carro, som de motor proporcional ao movimento, buzina e controle de som.
 
-Arte vetorial desenhada em Canvas com cidade em perspectiva, carro expressivo, árvores e casas em tons suaves. Motor sintetizado com Web Audio, ativado após o primeiro toque. Funciona também com espaço/seta para cima e setas laterais.
+Sem pontuação, derrota, anúncios ou coleta de dados. Canvas e Web Audio, sem dependências externas. As setas do teclado também movem o carro.
 
-Execute com qualquer servidor estático ou abra index.html diretamente. Publicação via GitHub Pages a partir da raiz da branch main.
+Jogar: https://mqzgames.github.io/bemrapido/
 
 ## Prompt refinado
-
-Crie BemRápido, um jogo de passeio de carrinho para crianças de 2 anos, mobile first. A criança segura qualquer ponto da área de jogo para acelerar e arrasta horizontalmente para guiar. Ao soltar, o carro desacelera. Apresente uma cidade colorida em perspectiva, com casas, árvores e um carrinho expressivo em destaque. Priorize resposta imediata, grandes alvos de toque, movimento suave, gráficos nítidos e interface sem necessidade de leitura. Inclua motor de aceleração suave, buzina e opção de silenciar. Não inclua competição, derrota, anúncios, compras ou coleta de dados. Entregue os arquivos completos e um link publicado para jogar no celular.
+Crie BemRápido, um jogo de carrinho para crianças de 2 anos, mobile first. Use uma cidade isométrica vista de cima, como um tapete de brincar com ruas diagonais, cruzamentos, casas e árvores em cores suaves. O bebê arrasta o carrinho livremente com o dedo em qualquer direção. A câmera acompanha suavemente o passeio, o carrinho vira na direção do movimento e para quando o dedo solta. Use uma área de toque generosa, sem exigir precisão, sem competição ou derrota. Inclua motor suave que acompanha o movimento, buzina e opção de silenciar. Publique os arquivos completos com um link para jogar no celular.
