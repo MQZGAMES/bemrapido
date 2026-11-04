@@ -1,14 +1,15 @@
 # BemRápido
 
-Brincadeira mobile first de miniaturas esportivas vistas diretamente de cima. Cinco carros grandes com pintura metálica, faixas, chamas e aerofólios sobre um pátio livre de asfalto.
+Brincadeira mobile first com três miniaturas esportivas vistas de cima e asfalto em toda a tela, sem logo.
 
-- O laranja começa parado e só anda quando manipulado ou empurrado.
-- Quatro carros andam sozinhos. Ao pegar qualquer um, a criança assume o controle.
-- Arrastar e soltar rapidamente lança o carro. A velocidade do gesto define o impulso, com desaceleração gradual.
-- Os carros param ao atingir as bordas. Os autônomos voltam a passear após terminar o impulso e uma breve pausa.
-- Soltar depois de segurar parado não lança o carro. Cancelar o toque também não lança.
-- Colisões suaves entre os brinquedos, motor sintetizado, buzina e opção de silenciar.
+- Laranja sem piloto automático; azul e verde autônomos.
+- Arrastar assume o controle; soltar rápido lança com impulso e desaceleração.
+- Colisões por caixas orientadas com dimensões dos carros, impulsos e subpassos de física a até 240 Hz para evitar atravessamento.
+- Motor individual ao pegar, arrastar e lançar, até parar. Impactos suaves com som.
+- Buzina bi-bi centralizada na parte inferior.
+- Menu de adultos: segure o canto superior direito por 1,4 segundo. Controle motor/buzina, música e volume. Toque curto ou arraste no canto não abre o menu.
+- Trilhas originais sintetizadas: eletrônica animada e rock de garagem. Música desligada inicialmente; configurações independentes para música e efeitos.
 
-Sem anúncios, placar, derrota ou coleta de dados. Canvas e Web Audio, sem dependências externas. Abra index.html ou use qualquer servidor estático.
+Canvas e Web Audio sem dependências, anúncios ou coleta de dados. Áudio começa após interação. Abra index.html ou use qualquer servidor estático.
 
-Jogar: https://mqzgames.github.io/bemrapido/
+https://mqzgames.github.io/bemrapido/
