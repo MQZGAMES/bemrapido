@@ -15,3 +15,6 @@ Canvas e Web Audio, sem dependências externas, anúncios, placar, derrota ou co
 Teste de regressão de lógica e PWA: `node verify.cjs`.
 
 https://mqzgames.github.io/bemrapido/
+
+## Modelos, velocidade e dois dedos
+Configurações de velocidade de 25% a 175% afetam apenas o piloto automático. Dois dedos podem controlar e lançar dois veículos de forma independente. Os tipos disponíveis são carros normais (único padrão), caminhonetes, ônibus e caminhões, selecionados por caixas nas configurações. Cada modelo tem desenho, dimensões, peso, motor e buzina próprios. A buzina corresponde ao último veículo pego. Tipos e velocidade ficam salvos neste aparelho.
