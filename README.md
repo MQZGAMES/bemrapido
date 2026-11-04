@@ -16,3 +16,6 @@ https://mqzgames.github.io/bemrapido/
 
 ## Pista livre
 Circuito retangular com cantos arredondados, duas faixas e sentido horário. Azul e verde seguem trajetórias paralelas com velocidades diferentes. O desenho não possui paredes nem restrições físicas: todos podem cruzar as faixas e o centro. Carrinhos reduzidos exatamente em 20%. Batidas transferem impulso, preservam deslizamento lateral e incluem saída de situações em que os brinquedos ficam prensados na borda externa.
+
+## Asfalto aberto
+Sem borda externa nem ilha central: uma superfície contínua com guia tracejada discreta. Limites calculados pelo tamanho e rotação de cada carrinho permitem encostar rodas e para-choques nas extremidades da tela, preservando o deslizamento ao longo da borda.
