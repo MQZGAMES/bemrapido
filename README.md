@@ -18,3 +18,6 @@ https://mqzgames.github.io/bemrapido/
 
 ## Modelos, velocidade e dois dedos
 Configurações de velocidade de 25% a 175% afetam apenas o piloto automático. Dois dedos podem controlar e lançar dois veículos de forma independente. Os tipos disponíveis são carros normais (único padrão), caminhonetes, ônibus e caminhões, selecionados por caixas nas configurações. Cada modelo tem desenho, dimensões, peso, motor e buzina próprios. A buzina corresponde ao último veículo pego. Tipos e velocidade ficam salvos neste aparelho.
+
+## Direção preventiva
+Os veículos autônomos avaliam velocidades e desvios possíveis, prevendo a posição dos outros veículos por até 0,85 segundo. Reduzem a velocidade e procuram espaço para passar, considerando as dimensões de cada modelo e as bordas do mapa. Pequenos contatos entre autônomos não colocam os dois em desaceleração prolongada. Se não avançarem, fazem uma ré curta e retomam a rota. Pegar um veículo cancela imediatamente a manobra. Testes: node verify.cjs e node ai-benchmark.cjs.

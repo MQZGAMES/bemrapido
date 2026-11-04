@@ -76,7 +76,7 @@ function scheduleMusic(){if(!audio||audio.state!=='running'||musicStyle==='off')
 function begin(e){
  if(menuOpen||drags.has(e.pointerId)||drags.size>=2)return;
  const matches=cars.filter(c=>c.mode!=='held'&&Math.hypot(c.x-e.clientX,c.y-e.clientY)<Math.max(32,dimensions(c).l*S+12)).sort((a,b)=>Math.hypot(a.x-e.clientX,a.y-e.clientY)-Math.hypot(b.x-e.clientX,b.y-e.clientY));if(!matches.length)return;
- e.preventDefault();initAudio();const c=matches[0],drag={id:e.pointerId,car:c,ox:c.x-e.clientX,oy:c.y-e.clientY,history:[{x:c.x,y:c.y,t:e.timeStamp}]};drags.set(e.pointerId,drag);active=drag;lastModel=c.model;c.mode='held';c.vx=c.vy=0;c.tx=c.x;c.ty=c.y;c.sounding=true;c.grab=.22;canvas.setPointerCapture(e.pointerId);game.classList.add('playing');
+ e.preventDefault();initAudio();const c=matches[0],drag={id:e.pointerId,car:c,ox:c.x-e.clientX,oy:c.y-e.clientY,history:[{x:c.x,y:c.y,t:e.timeStamp}]};drags.set(e.pointerId,drag);active=drag;lastModel=c.model;c.mode='held';c.reverseUntil=0;c.stuck=0;c.checkTime=undefined;c.aiNext=0;c.vx=c.vy=0;c.tx=c.x;c.ty=c.y;c.sounding=true;c.grab=.22;canvas.setPointerCapture(e.pointerId);game.classList.add('playing');
 }
 function move(e){const drag=drags.get(e.pointerId);if(!drag)return;e.preventDefault();const c=drag.car;c.tx=clamp(e.clientX+drag.ox,0,W);c.ty=clamp(e.clientY+drag.oy,0,H);drag.history.push({x:c.tx,y:c.ty,t:e.timeStamp});drag.history=drag.history.filter(p=>e.timeStamp-p.t<=110);}
 function release(e,cancel=false){
@@ -104,14 +104,57 @@ function contact(a,b){const aa=axes(a),bb=axes(b),dx=b.x-a.x,dy=b.y-a.y;let dept
 function trackGeometry(offset=0){const base=Math.min(W,H)*.37,inset=base+offset,left=inset,right=W-inset,top=inset,bottom=H-inset,radius=Math.max(4,Math.min(Math.min(W,H)*.12-offset,(right-left)/2,(bottom-top)/2));return{left,right,top,bottom,radius,width:right-left,height:bottom-top}}
 function trackPoint(progress,offset=0){const g=trackGeometry(offset),{left:l,right:r,top:t,bottom:b,radius:q}=g,horizontal=Math.max(0,r-l-2*q),vertical=Math.max(0,b-t-2*q),arc=Math.PI*q/2,lengths=[horizontal,arc,vertical,arc,horizontal,arc,vertical,arc],total=lengths.reduce((a,b)=>a+b,0);let distance=((progress%1)+1)%1*total,index=0;while(index<7&&distance>lengths[index])distance-=lengths[index++];const u=lengths[index]?distance/lengths[index]:0;let x,y,heading;if(index===0){x=l+q+horizontal*u;y=t;heading=0}else if(index===2){x=r;y=t+q+vertical*u;heading=Math.PI/2}else if(index===4){x=r-q-horizontal*u;y=b;heading=Math.PI}else if(index===6){x=l;y=b-q-vertical*u;heading=-Math.PI/2}else{const k=(index-1)/2,centers=[[r-q,t+q],[r-q,b-q],[l+q,b-q],[l+q,t+q]],a=-Math.PI/2+k*Math.PI/2+u*Math.PI/2;x=centers[k][0]+Math.cos(a)*q;y=centers[k][1]+Math.sin(a)*q;heading=a+Math.PI/2}return{x,y,angle:heading+Math.PI/2,length:total}}
 function nearestTrack(c,offset){const key=[W,H,offset].join(':');let points=trackSamples.get(key);if(!points){points=Array.from({length:120},(_,i)=>trackPoint(i/120,offset));trackSamples.set(key,points);}let best=Infinity,progress=0;for(let i=0;i<points.length;i++){const p=points[i],d=(p.x-c.x)**2+(p.y-c.y)**2;if(d<best){best=d;progress=i/120}}return progress;}
-function guide(c,h){const offset=c.lane*B,phase=nearestTrack(c,offset),path=trackPoint(phase,offset),target=trackPoint(phase+25*B/path.length,offset),dx=target.x-c.x,dy=target.y-c.y,d=Math.hypot(dx,dy),desired=Math.atan2(dy,dx)+Math.PI/2,turn=Math.atan2(Math.sin(desired-c.angle),Math.cos(desired-c.angle));c.angle+=clamp(turn,-h*3,h*3);const speed=(76+(c.id%3)*15)*B*settings.speed/100;c.vx+=(dx/Math.max(1,d)*speed-c.vx)*Math.min(1,h*3.2);c.vy+=(dy/Math.max(1,d)*speed-c.vy)*Math.min(1,h*3.2)}
+// Predict oriented-body clearance instead of steering blindly at the next waypoint.
+function predictedGap(a,b,ax,ay,bx,by,angle){
+ const aa=axes({angle}),bb=axes(b),ad=dimensions(a),bd=dimensions(b),dx=bx-ax,dy=by-ay;
+ let gap=-Infinity;
+ for(const n of [...aa,...bb]){const ar=(ad.w*Math.abs(n.x*aa[0].x+n.y*aa[0].y)+ad.l*Math.abs(n.x*aa[1].x+n.y*aa[1].y))*S;
+ const br=(bd.w*Math.abs(n.x*bb[0].x+n.y*bb[0].y)+bd.l*Math.abs(n.x*bb[1].x+n.y*bb[1].y))*S;
+ gap=Math.max(gap,Math.abs(dx*n.x+dy*n.y)-ar-br);}
+ return gap;
+}
+function chooseVelocity(c,desiredX,desiredY,speed,reversing=false){
+ const neighbors=cars.filter(other=>other!==c&&Math.hypot(other.x-c.x,other.y-c.y)<(dimensions(c).l+dimensions(other).l+30)*S+(speed+Math.hypot(other.vx,other.vy))*.85);
+ const base=Math.atan2(desiredY,desiredX);let bestScore=-Infinity,best={x:0,y:0};
+ const turns=reversing?[0,.45,-.45,.85,-.85]:[0,.3,-.3,.65,-.65,1.05,-1.05,1.4,-1.4];
+ for(const turn of turns)for(const fraction of [1,.55,0]){
+  const heading=base+turn,vx=Math.cos(heading)*speed*fraction,vy=Math.sin(heading)*speed*fraction;
+  const angle=reversing?c.angle:heading+Math.PI/2,bound=bounds({...c,angle});
+  let score=100*fraction*Math.cos(turn)-turn*turn*7+(turn>0?.2:0);
+  // Avoid rapid left/right oscillation while passing another vehicle.
+  if(c.aiVX!==undefined)score-=Math.hypot(vx-c.aiVX,vy-c.aiVY)/Math.max(1,speed)*7;
+  for(const ahead of [.18,.45,.85]){
+   const px=c.x+vx*ahead,py=c.y+vy*ahead,edge=Math.min(px-bound.left,bound.right-px,py-bound.top,bound.bottom-py);
+   if(edge<0)score-=500+Math.abs(edge)/S*9;else if(edge<6*S)score-=(6*S-edge)/S*4;
+   for(const other of neighbors){
+    const gap=predictedGap(c,other,px,py,other.x+other.vx*ahead,other.y+other.vy*ahead,angle);
+    if(gap<5*S)score-=250+(5*S-gap)/S*8;else if(gap<23*S)score-=(23*S-gap)/S*2;
+   }
+  }
+  if(score>bestScore){bestScore=score;best={x:vx,y:vy};}
+ }
+ return best;
+}
+function guide(c,h){
+ if(c.checkTime===undefined){c.checkTime=time;c.checkX=c.x;c.checkY=c.y;c.stuck=0;}
+ if(time-c.checkTime>.8){const moved=Math.hypot(c.x-c.checkX,c.y-c.checkY);c.stuck=moved<13*B?(c.stuck||0)+.8:0;c.checkTime=time;c.checkX=c.x;c.checkY=c.y;}
+ if(c.stuck>1.5&&!(c.reverseUntil>time)){c.reverseUntil=time+.65;c.aiNext=0;c.stuck=0;c.checkTime=time;}
+ const reversing=c.reverseUntil>time;
+ if(!c.aiNext||time>=c.aiNext){
+  let dx,dy,speed;
+  if(reversing){dx=-Math.sin(c.angle);dy=Math.cos(c.angle);speed=65*B;}
+  else{const offset=c.lane*B,phase=nearestTrack(c,offset),path=trackPoint(phase,offset),target=trackPoint(phase+42*B/path.length,offset);dx=target.x-c.x;dy=target.y-c.y;speed=(76+(c.id%3)*15)*B*settings.speed/100;}
+  const selected=chooseVelocity(c,dx,dy,speed,reversing);c.aiVX=selected.x;c.aiVY=selected.y;c.aiNext=time+.11;
+ }
+ const response=Math.min(1,h*7);c.vx+=((c.aiVX||0)-c.vx)*response;c.vy+=((c.aiVY||0)-c.vy)*response;
+}
 function collisionFeedback(key,x,y,speed,held=false){const threshold=(held?8:20)*S;if(speed<threshold)return;const previous=impactTimes.get(key)??-10;if(time-previous<.14)return;impactTimes.set(key,time);sparks.push({x,y,life:.2});thump(Math.max(speed,60*S));}
 function wall(c){const b=bounds(c);let nx=0,ny=0;if(c.x<b.left){c.x=b.left;nx=1}else if(c.x>b.right){c.x=b.right;nx=-1}if(c.y<b.top){c.y=b.top;ny=1}else if(c.y>b.bottom){c.y=b.bottom;ny=-1}const impact=-(c.vx*nx+c.vy*ny);if(impact>0){const held=c.mode==='held';const side=nx?'x':'y';const edgeX=nx?(nx>0?0:W):c.x,edgeY=ny?(ny>0?0:H):c.y;collisionFeedback('wall'+c.id+side,edgeX,edgeY,impact,held);if(nx)c.vx=0;if(ny)c.vy=0}}
-function collide(){for(let i=0;i<cars.length;i++)for(let j=i+1;j<cars.length;j++){const a=cars[i],b=cars[j],n=contact(a,b);if(!n)continue;const wa=(a.mode==='held'?.22:1)/dimensions(a).mass,wb=(b.mode==='held'?.22:1)/dimensions(b).mass,total=wa+wb;a.x-=n.x*(n.depth+.08)*wa/total;a.y-=n.y*(n.depth+.08)*wa/total;b.x+=n.x*(n.depth+.08)*wb/total;b.y+=n.y*(n.depth+.08)*wb/total;const closing=(a.vx-b.vx)*n.x+(a.vy-b.vy)*n.y;if(closing>0){const impulse=1.25*closing/total;a.vx-=n.x*impulse*wa;a.vy-=n.y*impulse*wa;b.vx+=n.x*impulse*wb;b.vy+=n.y*impulse*wb;collisionFeedback(a.id+':'+b.id,(a.x+b.x)/2,(a.y+b.y)/2,closing,a.mode==='held'||b.mode==='held');for(const c of [a,b])if(c.mode!=='held'&&(closing>35*S||c.mode==='idle')){c.mode='coast';c.resume=.6;c.sounding=true}}}}
+function collide(){for(let i=0;i<cars.length;i++)for(let j=i+1;j<cars.length;j++){const a=cars[i],b=cars[j],n=contact(a,b);if(!n)continue;const wa=(a.mode==='held'?.22:1)/dimensions(a).mass,wb=(b.mode==='held'?.22:1)/dimensions(b).mass,total=wa+wb;a.x-=n.x*(n.depth+.08)*wa/total;a.y-=n.y*(n.depth+.08)*wa/total;b.x+=n.x*(n.depth+.08)*wb/total;b.y+=n.y*(n.depth+.08)*wb/total;const closing=(a.vx-b.vx)*n.x+(a.vy-b.vy)*n.y;if(closing>0){const bothAuto=a.mode==='auto'&&b.mode==='auto',impulse=(bothAuto?1.03:1.25)*closing/total;a.vx-=n.x*impulse*wa;a.vy-=n.y*impulse*wa;b.vx+=n.x*impulse*wb;b.vy+=n.y*impulse*wb;collisionFeedback(a.id+':'+b.id,(a.x+b.x)/2,(a.y+b.y)/2,closing,a.mode==='held'||b.mode==='held');for(const c of [a,b])if(c.mode!=='held'&&c.mode!=='auto'&&(closing>35*S||c.mode==='idle')||c.mode==='auto'&&(a.mode==='held'||b.mode==='held'||closing>200*S)){c.mode='coast';c.resume=.6;c.sounding=true}}}}
 // If two toys are pinned against an outer wall, let one slide sideways out.
 function unjam(){for(let i=0;i<cars.length;i++)for(let j=i+1;j<cars.length;j++){const a=cars[i],b=cars[j],n=contact(a,b);if(!n||n.depth<.5*S)continue;const c=a.mode==='held'?b:b.mode==='held'?a:(a.id>b.id?a:b),lim=bounds(c);if(Math.abs(n.x)>.7&&(c.x<lim.left+2||c.x>lim.right-2)){const dir=c.y<H/2?1:-1;c.y=clamp(c.y+dir*4*S,lim.top,lim.bottom);c.vy+=dir*12*S;}else if(Math.abs(n.y)>.7&&(c.y<lim.top+2||c.y>lim.bottom-2)){const dir=c.x<W/2?1:-1;c.x=clamp(c.x+dir*4*S,lim.left,lim.right);c.vx+=dir*12*S;}}}
 // The miniature always travels nose-first, including after a throw or impact.
-function faceVelocity(c){if(Math.hypot(c.vx,c.vy)>1*S)c.angle=Math.atan2(c.vy,c.vx)+Math.PI/2;}
+function faceVelocity(c){if(c.mode==='auto'&&c.reverseUntil>time)return;if(Math.hypot(c.vx,c.vy)>1*S)c.angle=Math.atan2(c.vy,c.vx)+Math.PI/2;}
 function update(dt){if(menuOpen)return;time+=dt;const count=Math.max(1,Math.ceil(dt/(1/240))),h=dt/count;for(let step=0;step<count;step++){for(const c of cars){c.grab=Math.max(0,c.grab-h);if(c.mode==='held'){const dx=c.tx-c.x,dy=c.ty-c.y,d=Math.hypot(dx,dy),speed=Math.min(1050*S,d*25);c.vx=d>.1?dx/d*speed:0;c.vy=d>.1?dy/d*speed:0;if(d>8*S){const desired=Math.atan2(dy,dx)+Math.PI/2;c.angle+=clamp(Math.atan2(Math.sin(desired-c.angle),Math.cos(desired-c.angle)),-h*8,h*8)}}else if(c.mode==='auto')guide(c,h);else if(c.mode==='coast'){const f=Math.exp(-1.4*h);c.vx*=f;c.vy*=f;if(Math.hypot(c.vx,c.vy)<18*S){c.resume-=h;if(c.resume<=0){c.mode=c.auto?'auto':'idle';if(!c.auto)c.vx=c.vy=0;c.sounding=false}}}faceVelocity(c);c.x+=c.vx*h;c.y+=c.vy*h;wall(c)}for(let pass=0;pass<8;pass++){collide();cars.forEach(wall)}unjam();for(let edgePass=0;edgePass<3;edgePass++){cars.forEach(faceVelocity);cars.forEach(wall);}}for(const c of cars)if(Math.hypot(c.vx,c.vy)>170*S)trails.push({x:c.x,y:c.y,angle:c.angle,life:.45});for(const list of [trails,sparks])for(let i=list.length-1;i>=0;i--){list[i].life-=dt;if(list[i].life<=0)list.splice(i,1)}}
 function traceTrack(offset){const g=trackGeometry(offset);ctx.beginPath();ctx.roundRect(g.left,g.top,g.width,g.height,g.radius)}
 // One light guide loop on continuous asphalt, with no island or outer curb.
