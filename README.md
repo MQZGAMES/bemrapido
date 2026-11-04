@@ -1,21 +1,17 @@
 # BemRápido
 
-Brincadeira mobile first com três miniaturas esportivas vistas de cima e asfalto em toda a tela, sem logo.
+Webapp de carrinhos mobile first, com asfalto livre e circuito indicado por uma linha interna. Todos os carros circulam no mesmo sentido, por fora da marcação, e podem ser pegos, arrastados e lançados pela criança. Após desacelerar e parar, retomam o piloto automático.
 
-- Laranja sem piloto automático; azul e verde autônomos.
-- Arrastar assume o controle; soltar rápido lança com impulso e desaceleração.
-- Colisões por caixas orientadas com dimensões dos carros, impulsos e subpassos de física a até 240 Hz para evitar atravessamento.
-- Motor individual ao pegar, arrastar e lançar, até parar. Impactos suaves com som.
-- Buzina bi-bi centralizada na parte inferior.
-- Menu de adultos: segure o canto superior direito por 1,4 segundo. Controle motor/buzina, música e volume. Toque curto ou arraste no canto não abre o menu.
-- Trilhas originais sintetizadas: eletrônica animada e rock de garagem. Música desligada inicialmente; configurações independentes para música e efeitos.
+- Menu de adultos por pressão de 1,4 segundo no canto superior direito vazio. Se houver carro, o toque sempre pega o brinquedo.
+- Nenhuma instrução visível durante a brincadeira.
+- Tamanho: 40% a 100% do tamanho de referência. Quantidade: 1 a 8 carros. Ambas as preferências são salvas neste aparelho.
+- Buzina e música centralizadas juntas. Botão musical alterna eletrônica → rock → desligada. Volume e efeitos separados nas configurações.
+- Colisões com caixas orientadas, impulso, saída de apertos, som e faíscas mesmo ao empurrar com o dedo. Frente do carro acompanha sua velocidade.
+- Limites físicos usam a rotação e dimensões reais; a posição desejada pelo dedo vai até o limite da tela para não gerar margens invisíveis.
+- PWA: manifesto standalone, ícones 192/512 e service worker. Pode ser instalado por navegadores compatíveis e funciona offline após o primeiro carregamento completo. Em iOS, adicionar à Tela de Início pelo menu Compartilhar. O botão de instalação aparece nas configurações quando o navegador oferece essa opção.
 
-Canvas e Web Audio sem dependências, anúncios ou coleta de dados. Áudio começa após interação. Abra index.html ou use qualquer servidor estático.
+Canvas e Web Audio, sem dependências externas, anúncios, placar, derrota ou coleta de dados. Áudio começa após interação.
+
+Teste de regressão de lógica e PWA: `node verify.cjs`.
 
 https://mqzgames.github.io/bemrapido/
-
-## Pista livre
-Circuito retangular com cantos arredondados, duas faixas e sentido horário. Azul e verde seguem trajetórias paralelas com velocidades diferentes. O desenho não possui paredes nem restrições físicas: todos podem cruzar as faixas e o centro. Carrinhos reduzidos exatamente em 20%. Batidas transferem impulso, preservam deslizamento lateral e incluem saída de situações em que os brinquedos ficam prensados na borda externa.
-
-## Asfalto aberto
-Sem borda externa nem ilha central: uma superfície contínua com guia tracejada discreta. Limites calculados pelo tamanho e rotação de cada carrinho permitem encostar rodas e para-choques nas extremidades da tela, preservando o deslizamento ao longo da borda.
