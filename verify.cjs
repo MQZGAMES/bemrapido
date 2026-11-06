@@ -18,3 +18,11 @@ run('settings.speed=100;settings.models=["car","pickup","bus","truck"];buildCars
 // Stalled autonomous vehicles can back out, preserve their nose during reverse,
 // then return to ordinary forward traffic. A child's grab cancels the maneuver.
 run('settings.models=["car"];settings.speed=100;buildCars(3);cars[0].x=180;cars[0].y=400;cars[0].angle=0;cars[0].vx=cars[0].vy=0;cars[1].x=320;cars[1].y=700;cars[2].x=320;cars[2].y=120;cars[0].checkTime=time;cars[0].checkX=180;cars[0].checkY=400;cars[0].stuck=1.6;cars[0].aiNext=0;guide(cars[0],.02)');assert(run('cars[0].reverseUntil>time'));assert(run('cars[0].vy>0'));const reverseAngle=run('cars[0].angle');run('faceVelocity(cars[0])');assert.equal(run('cars[0].angle'),reverseAngle);run('for(let i=0;i<100;i++)update(1/60)');assert(run('cars[0].reverseUntil<time'));const grab=run('({x:cars[0].x,y:cars[0].y})');events['city:pointerdown'](touch(30,grab.x,grab.y,8000));assert(run('cars[0].mode==="held"&&cars[0].reverseUntil===0'));events.pointercancel(touch(30,grab.x,grab.y,8010));console.log('PASS: automatic reverse recovery, forward resumption and immediate manual override');
+// A single fast swipe can cross two toys between pointer events and scatter them.
+run('buildCars(2);cars[0].x=130;cars[0].y=380;cars[1].x=260;cars[1].y=420');
+events['city:pointerdown'](touch(41,20,400,9000));
+events['city:pointermove'](touch(41,365,400,9300));
+assert(run('cars.every(c=>c.mode==="coast"&&c.vx>0)&&cars[0].vy<0&&cars[1].vy>0'));
+events.pointerup(touch(41,365,400,9310));
+assert(run('sweeps.size===0'));
+console.log('PASS: fast empty-asphalt swipe pushes multiple cars in different directions');

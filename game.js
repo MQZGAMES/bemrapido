@@ -3,7 +3,7 @@ let W=0,H=0,S=1,B=1,last=0,time=0,active=null,muted=false,audio,asphalt,musicBus
 let settings={size:100,count:3,speed:100,models:['car']};try{const saved=JSON.parse(localStorage.getItem('bemrapido-settings')||'{}');settings.size=Math.max(40,Math.min(100,Number(saved.size)||100));settings.count=Math.max(1,Math.min(8,Math.round(Number(saved.count)||3)));}catch(e){}
 try{const saved=JSON.parse(localStorage.getItem('bemrapido-settings')||'{}');settings.speed=Math.max(25,Math.min(175,Number(saved.speed)||100));if(Array.isArray(saved.models)){const valid=saved.models.filter(x=>['car','pickup','bus','truck'].includes(x));if(valid.length)settings.models=valid;}}catch(e){}
 function saveSettings(){try{localStorage.setItem('bemrapido-settings',JSON.stringify(settings))}catch(e){}}
-const drags=new Map();let lastModel='car';
+const drags=new Map(), sweeps=new Map();let lastModel='car';
 const cars=[],trails=[],sparks=[],voices=[],impactTimes=new Map(),trackSamples=new Map();
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const specs=[{name:'Foguinho',color:'#ff6d28',light:'#ffc265',dark:'#b72b18',type:0,auto:true},{name:'Raio azul',color:'#168bff',light:'#7ed9ff',dark:'#143a9b',type:1,auto:true},{name:'Veneno verde',color:'#95d92e',light:'#e2ff8a',dark:'#3b771d',type:2,auto:true}];
@@ -75,7 +75,7 @@ function thump(v){
 function scheduleMusic(){if(!audio||audio.state!=='running'||musicStyle==='off')return;if(nextBeat<audio.currentTime)nextBeat=audio.currentTime+.03;const step=60/(musicStyle==='rock'?122:128)/4;while(nextBeat<audio.currentTime+.18){let t=nextBeat,n=beat%16,root=[110,87.307,130.813,97.999][Math.floor(beat/16)%4];if(n%4===0){let o=audio.createOscillator(),g=audio.createGain();o.frequency.setValueAtTime(125,t);o.frequency.exponentialRampToValueAtTime(40,t+.13);g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.connect(g);g.connect(musicBus);o.start(t);o.stop(t+.2)}if(n%4===2)tone(6200,t,.035,.025,'square',musicBus);if(n===4||n===12){tone(180,t,.12,.055,'triangle',musicBus);tone(1900,t,.06,.018,'sawtooth',musicBus)}if(n%2===0){if(musicStyle==='rock'){tone(root,t,.17,.065,'sawtooth',musicBus);tone(root*1.5,t,.15,.038,'square',musicBus);tone(root*2,t,.14,.025,'sawtooth',musicBus)}else{tone(root*.5,t,.18,.1,'triangle',musicBus);tone(root*[2,3,4,3,2,3,4,6][n/2],t,.13,.04,'triangle',musicBus)}}nextBeat+=step;beat++}}
 function begin(e){
  if(menuOpen||drags.has(e.pointerId)||drags.size>=2)return;
- const matches=cars.filter(c=>c.mode!=='held'&&Math.hypot(c.x-e.clientX,c.y-e.clientY)<Math.max(32,dimensions(c).l*S+12)).sort((a,b)=>Math.hypot(a.x-e.clientX,a.y-e.clientY)-Math.hypot(b.x-e.clientX,b.y-e.clientY));if(!matches.length)return;
+ const matches=cars.filter(c=>c.mode!=='held'&&Math.hypot(c.x-e.clientX,c.y-e.clientY)<Math.max(56,dimensions(c).l*S+27)).sort((a,b)=>Math.hypot(a.x-e.clientX,a.y-e.clientY)-Math.hypot(b.x-e.clientX,b.y-e.clientY));if(!matches.length)return;
  e.preventDefault();initAudio();const c=matches[0],drag={id:e.pointerId,car:c,ox:c.x-e.clientX,oy:c.y-e.clientY,history:[{x:c.x,y:c.y,t:e.timeStamp}]};drags.set(e.pointerId,drag);active=drag;lastModel=c.model;c.mode='held';c.reverseUntil=0;c.stuck=0;c.checkTime=undefined;c.aiNext=0;c.vx=c.vy=0;c.tx=c.x;c.ty=c.y;c.sounding=true;c.grab=.22;canvas.setPointerCapture(e.pointerId);game.classList.add('playing');
 }
 function move(e){const drag=drags.get(e.pointerId);if(!drag)return;e.preventDefault();const c=drag.car;c.tx=clamp(e.clientX+drag.ox,0,W);c.ty=clamp(e.clientY+drag.oy,0,H);drag.history.push({x:c.tx,y:c.ty,t:e.timeStamp});drag.history=drag.history.filter(p=>e.timeStamp-p.t<=110);}
@@ -83,13 +83,34 @@ function release(e,cancel=false){
  const released=e?.pointerId!==undefined?[drags.get(e.pointerId)].filter(Boolean):[...drags.values()];
  for(const drag of released){const c=drag.car,h=drag.history,end=h[h.length-1],start=h[0],age=(e?.timeStamp??end.t)-end.t,dt=(end.t-start.t)/1000;c.vx=c.vy=0;if(!cancel&&age<100&&dt>.008){c.vx=(end.x-start.x)/dt;c.vy=(end.y-start.y)/dt;const v=Math.hypot(c.vx,c.vy),limit=1300*S;if(v>limit){c.vx*=limit/v;c.vy*=limit/v}}c.mode='coast';c.resume=.8;drags.delete(drag.id);}active=[...drags.values()].at(-1)||null;
 }
+// A swipe starting on empty asphalt can bump every car it crosses.
+function sweep(e){
+ const gesture=sweeps.get(e.pointerId);if(!gesture)return;
+ const dx=e.clientX-gesture.x,dy=e.clientY-gesture.y,length=Math.hypot(dx,dy);
+ if(length<4)return;
+ const ux=dx/length,uy=dy/length;
+ const speed=clamp(length/Math.max(.012,(e.timeStamp-gesture.t)/1000),120,950);
+ for(const car of cars){
+  if(car.mode==='held'||e.timeStamp-(gesture.hits.get(car.id)??-Infinity)<180)continue;
+  const along=clamp((car.x-gesture.x)*ux+(car.y-gesture.y)*uy,0,length);
+  const awayX=car.x-gesture.x-along*ux,awayY=car.y-gesture.y-along*uy;
+  const radius=Math.max(35,dimensions(car).l*S+9),distance=Math.hypot(awayX,awayY);
+  if(distance>radius)continue;
+  const side=clamp((awayX*-uy+awayY*ux)/radius,-1,1),impulse=speed*.66/Math.sqrt(dimensions(car).mass);
+  car.vx=ux*impulse-uy*side*impulse*.9;
+  car.vy=uy*impulse+ux*side*impulse*.9;
+  car.mode='coast';car.resume=.55;car.sounding=true;car.reverseUntil=0;car.aiNext=0;car.checkTime=undefined;
+  gesture.hits.set(car.id,e.timeStamp);
+ }
+ gesture.x=e.clientX;gesture.y=e.clientY;gesture.t=e.timeStamp;
+}
 // A canvas gesture opens settings only on empty asphalt. Cars always win hit testing.
 let holdTimer,holdOrigin;
 function clearHold(){clearTimeout(holdTimer);holdOrigin=null;}
-canvas.addEventListener('pointerdown',e=>{e.preventDefault();begin(e);if(drags.size||menuOpen)return;if(e.clientX>W-76&&e.clientY<76){holdOrigin={x:e.clientX,y:e.clientY,id:e.pointerId};canvas.setPointerCapture(e.pointerId);holdTimer=setTimeout(()=>{clearHold();menuOpen=true;menu.showModal();},1400);}});
-canvas.addEventListener('pointermove',e=>{if(holdOrigin&&Math.hypot(e.clientX-holdOrigin.x,e.clientY-holdOrigin.y)>12)clearHold();move(e)});
-addEventListener('pointerup',e=>{clearHold();release(e)});addEventListener('pointercancel',e=>{clearHold();release(e,true)});addEventListener('blur',()=>{clearHold();release(undefined,true)});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){clearHold();release(undefined,true);audio?.suspend();last=0}else audio?.resume()});document.getElementById('honk').onclick=beep;
+canvas.addEventListener('pointerdown',e=>{e.preventDefault();begin(e);if(drags.has(e.pointerId)||menuOpen)return;sweeps.set(e.pointerId,{x:e.clientX,y:e.clientY,t:e.timeStamp,hits:new Map()});canvas.setPointerCapture(e.pointerId);if(drags.size)return;if(e.clientX>W-76&&e.clientY<76){holdOrigin={x:e.clientX,y:e.clientY,id:e.pointerId};canvas.setPointerCapture(e.pointerId);holdTimer=setTimeout(()=>{clearHold();sweeps.clear();menuOpen=true;menu.showModal();},1400);}});
+canvas.addEventListener('pointermove',e=>{if(holdOrigin&&Math.hypot(e.clientX-holdOrigin.x,e.clientY-holdOrigin.y)>12)clearHold();move(e);sweep(e)});
+addEventListener('pointerup',e=>{clearHold();sweeps.delete(e.pointerId);release(e)});addEventListener('pointercancel',e=>{clearHold();sweeps.delete(e.pointerId);release(e,true)});addEventListener('blur',()=>{clearHold();sweeps.clear();release(undefined,true)});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearHold();sweeps.clear();release(undefined,true);audio?.suspend();last=0}else audio?.resume()});document.getElementById('honk').onclick=beep;
 function closeMenu(){menu.close();menuOpen=false;last=0}document.getElementById('close').onclick=closeMenu;document.getElementById('back').onclick=closeMenu;menu.addEventListener('close',()=>{menuOpen=false;last=0});
 function setMusic(style){musicStyle=style;initAudio();beat=0;nextBeat=audio?audio.currentTime+.03:0;if(musicBus)musicBus.gain.setTargetAtTime(style==='off'?0:musicLevel,audio.currentTime,.08);document.getElementById('music').value=style;const button=document.getElementById('music-toggle');button.dataset.mode=style;const labels={off:'OFF',electronic:'ELETRO',rock:'ROCK'};document.getElementById('music-state').textContent=labels[style];button.setAttribute('aria-label',style==='off'?'Música desligada. Ativar eletrônica':style==='electronic'?'Música eletrônica. Mudar para rock':'Música rock. Desligar música');scheduleMusic();}
 document.getElementById('music-toggle').onclick=()=>setMusic({off:'electronic',electronic:'rock',rock:'off'}[musicStyle]);
